@@ -740,7 +740,7 @@ void read_call_args( struct task* task, struct expr_reading* reading,
 
 struct format_item* t_read_format_item( struct task* task, bool colon ) {
    struct format_item* head = NULL;
-   struct format_item* tail;
+   struct format_item* tail = NULL;
    while ( true ) {
       t_test_tk( task, TK_ID );
       struct format_item* item = mem_alloc( sizeof( *item ) );

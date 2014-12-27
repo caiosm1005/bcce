@@ -1022,7 +1022,7 @@ void read_enum( struct task* task, struct dec* dec ) {
          t_bail( task );
       }
       struct constant* head = NULL;
-      struct constant* tail;
+      struct constant* tail = NULL;
       while ( true ) {
          t_test_tk( task, TK_ID );
          struct constant* constant = alloc_constant();
