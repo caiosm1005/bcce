@@ -1419,5 +1419,6 @@ struct source* t_load_included_source( struct task* );
 void t_make_main_lib( struct task* );
 void t_read_lib( struct task* );
 bool t_same_pos( struct pos*, struct pos* );
+bool t_types_compatible( struct type*, struct type* );
 
 #endif

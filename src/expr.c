@@ -73,6 +73,7 @@ void t_read_expr( struct task* task, struct expr_reading* reading ) {
    struct expr* expr = mem_slot_alloc( sizeof( *expr ) );
    expr->node.type = NODE_EXPR;
    expr->root = reading->node;
+   expr->type = NULL;
    expr->pos = reading->pos;
    expr->value = 0;
    expr->folded = false;
@@ -895,6 +896,7 @@ void test_expr( struct task* task, struct expr_test* test, struct expr* expr,
          }
          expr->folded = operand->folded;
          expr->value = operand->value;
+         expr->type = operand->type;
          test->pos = expr->pos;
       }
       else {
@@ -1361,7 +1363,8 @@ void test_call( struct task* task, struct expr_test* test,
       }
    }
    // Arguments:
-   while ( ! list_end( &i ) ) {
+   struct param* param = callee.func->params;
+   while ( ! list_end( &i ) && param ) {
       struct expr_test arg;
       t_init_expr_test( &arg );
       arg.format_block = test->format_block;
@@ -1372,7 +1375,18 @@ void test_call( struct task* task, struct expr_test* test,
          test->undef_erred = true;
          longjmp( test->bail, 1 );
       }
+      struct expr* expr = list_data( &i );
+      if ( ! t_types_compatible( task, param->type, expr->type ) ) {
+         struct str str;
+         str_init( &str );
+         t_copy_name( callee.func->name, false, &str );
+         t_diag( task, DIAG_POS_ERR, &call->pos,
+            "argument %d of function `%s` cannot be converted to type `%s`",
+            count + 1, str.value, param->type->type_name );
+         t_bail( task );
+      }
       list_next( &i );
+      param = param->next;
       ++count;
    }
    if ( count < callee.func->min_param ) {
@@ -1728,4 +1742,14 @@ void test_access( struct task* task, struct expr_test* test,
          longjmp( test->bail, 1 );
       }
    }
+}
+
+bool t_types_compatible( struct task* task, struct type* type1,
+   struct type* type2 ) {
+   // TODO: Compare int to fixed and return true
+   // if ( type1 == task->type_int && type2 == task->type_fixed
+   //    || type1 == task->type_fixed && type2 == task->type_int ) {
+   //    return true;
+   // }
+   return type1 == type2;
 }

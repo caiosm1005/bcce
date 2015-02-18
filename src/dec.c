@@ -2718,10 +2718,9 @@ void test_var( struct task* task, struct var* var, bool undef_err ) {
    }
    struct expr* expr = var->value->expr;
    // Check if the variable type is the same as the expresion type
-   if ( var->type != expr->type ) {
-      // TODO: implicit type casting
-      t_diag( task, DIAG_ERR | DIAG_FILE | DIAG_LINE | DIAG_COLUMN,
-         &var->object.pos, "type `%s` is not assignable to variable type `%s`",
+   if ( ! t_types_compatible( task, var->type, expr->type ) ) {
+      t_diag( task, DIAG_POS_ERR, &var->object.pos,
+         "type `%s` is not assignable to variable type `%s`",
          expr->type->type_name, var->type->type_name );
       t_bail( task );
    }
@@ -2998,6 +2997,7 @@ void test_func( struct task* task, struct func* func, bool undef_err ) {
          start = start->next;
       }
       // Default arguments:
+      int count = 0;
       struct param* param = start;
       while ( param ) {
          if ( param->default_value ) {
@@ -3007,6 +3007,18 @@ void test_func( struct task* task, struct func* func, bool undef_err ) {
             t_test_expr( task, &expr, param->default_value );
             if ( expr.undef_erred ) {
                break;
+            }
+            // Check if types are compatible
+            if ( ! t_types_compatible( task,
+               param->type, param->default_value->type ) ) {
+               struct str str;
+               str_init( &str );
+               t_copy_name( func->name, false, &str );
+               t_diag( task, DIAG_POS_ERR, &param->object.pos,
+                  "default value of argument %d of function `%s` "
+                  "cannot be converted to type `%s`",
+                  count + 1, str.value, param->type->type_name );
+               t_bail( task );
             }
          }
          // Any previous parameter is visible inside the expression of a
@@ -3025,6 +3037,7 @@ void test_func( struct task* task, struct func* func, bool undef_err ) {
          }
          param->object.resolved = true;
          param = param->next;
+         ++count;
       }
       // Remove parameters from the top scope.
       struct param* stop = param;
