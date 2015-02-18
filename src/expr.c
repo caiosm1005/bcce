@@ -1403,7 +1403,7 @@ void test_call( struct task* task, struct expr_test* test,
       struct str str;
       str_init( &str );
       t_copy_name( callee.func->name, false, &str );
-      t_diag( task, DIAG_FILE, &call->pos, "function `%s` needs %s%d argument%s",
+      t_diag( task, DIAG_POS_ERR, &call->pos, "function `%s` needs %s%d argument%s",
          str.value, at_least, callee.func->min_param, s );
       t_bail( task );
    }
@@ -1421,7 +1421,7 @@ void test_call( struct task* task, struct expr_test* test,
       struct str str;
       str_init( &str );
       t_copy_name( callee.func->name, false, &str );
-      t_diag( task, DIAG_FILE, &call->pos,
+      t_diag( task, DIAG_POS_ERR, &call->pos,
          "function `%s` takes %s%d argument%s",
          str.value, up_to, callee.func->max_param, s );
       t_bail( task );
@@ -1452,7 +1452,7 @@ void test_call( struct task* task, struct expr_test* test,
             struct str str;
             str_init( &str );
             t_copy_name( callee.func->name, false, &str );
-            t_diag( task, DIAG_FILE, &call->pos,
+            t_diag( task, DIAG_POS_ERR, &call->pos,
                "waiting functions like `%s` can only be called inside a "
                "script", str.value );
             t_bail( task );
