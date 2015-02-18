@@ -2716,13 +2716,15 @@ void test_var( struct task* task, struct var* var, bool undef_err ) {
          return;
       }
    }
-   struct expr* expr = var->value->expr;
    // Check if the variable type is the same as the expresion type
-   if ( ! t_types_compatible( task, var->type, expr->type ) ) {
-      t_diag( task, DIAG_POS_ERR, &var->object.pos,
-         "type `%s` is not assignable to variable type `%s`",
-         expr->type->type_name, var->type->type_name );
-      t_bail( task );
+   if ( var->value ) {
+      struct expr* expr = var->value->expr;
+      if ( ! t_types_compatible( task, var->type, expr->type ) ) {
+         t_diag( task, DIAG_POS_ERR, &var->object.pos,
+            "type `%s` is not assignable to variable type `%s`",
+            expr->type->type_name, var->type->type_name );
+         t_bail( task );
+      }
    }
    var->object.resolved = true;
 }
