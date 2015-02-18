@@ -1120,21 +1120,32 @@ void test_return( struct task* task, struct stmt_test* test,
    }
    if ( ! target ) {
       t_diag( task, DIAG_POS_ERR, &stmt->pos,
-         "return statement outside function" );
+         "return statement outside function `%s`" );
       t_bail( task );
    }
+   struct str str;
+   str_init( &str );
+   t_copy_name( target->func->name, false, &str );
    if ( stmt->return_value ) {
       struct pos pos;
       test_packed_expr( task, test, stmt->return_value, &pos );
       if ( ! target->func->return_type ) {
          t_diag( task, DIAG_POS_ERR, &pos,
-            "returning value in void function" );
+            "returning value in void function `%s`", str.value );
+         t_bail( task );
+      }
+      else if ( ! t_types_compatible( task, stmt->return_value->expr->type,
+         target->func->return_type ) ) {
+         t_diag( task, DIAG_POS_ERR, &pos,
+            "cannot convert return value to type `%s` in function `%s`",
+            target->func->return_type->type_name, str.value );
          t_bail( task );
       }
    }
    else {
       if ( target->func->return_type ) {
-         t_diag( task, DIAG_POS_ERR, &stmt->pos, "missing return value" );
+         t_diag( task, DIAG_POS_ERR, &stmt->pos,
+            "missing return value in function `%s`", str.value );
          t_bail( task );
       }
    }
