@@ -1188,6 +1188,21 @@ void test_unary( struct task* task, struct expr_test* test,
          t_bail( task );
       }
    }
+   // Check value type
+   bool type_valid;
+   if ( unary->op == UOP_LOG_NOT ) {
+      type_valid = t_types_compatible( task, task->type_bool, target.type ) ||
+         t_types_compatible( task, task->type_int, target.type );
+   }
+   else {
+      type_valid = t_types_compatible( task, task->type_int, target.type );
+   }
+   if ( ! type_valid ) {
+      t_diag( task, DIAG_POS_ERR, &unary->pos,
+         "invalid operand type `%s` in unary operation",
+         target.type->type_name );
+      t_bail( task );
+   }
    // Compile-time evaluation.
    if ( target.folded ) {
       switch ( unary->op ) {
@@ -1553,6 +1568,13 @@ void test_binary( struct task* task, struct expr_test* test,
          "operand on right side not a value" );
       t_bail( task );
    }
+   // Check for operand types
+   if ( ! t_types_compatible( task, lside.type, rside.type ) ) {
+      t_diag( task, DIAG_POS_ERR, &binary->pos,
+         "operator cannot be applied to types `%s` and `%s`",
+         lside.type->type_name, rside.type->type_name );
+      t_bail( task );
+   }
    // Compile-time evaluation.
    if ( lside.folded && rside.folded ) {
       int l = lside.value;
@@ -1645,6 +1667,13 @@ void test_assign( struct task* task, struct expr_test* test,
    if ( ! rside.is_usable ) {
       t_diag( task, DIAG_POS_ERR, &assign->pos,
          "right side of assignment not a value" );
+      t_bail( task );
+   }
+   // Check if both types are compatible
+   if ( ! t_types_compatible( task, lside.type, rside.type ) ) {
+      t_diag( task, DIAG_POS_ERR, &assign->pos,
+         "cannot assign value type `%s` to left side type `%s`",
+         rside.type->type_name, lside.type->type_name );
       t_bail( task );
    }
    operand->is_result = true;
