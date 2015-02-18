@@ -286,6 +286,11 @@ struct type* new_type( struct task* task, struct name* name ) {
    type->primitive = false;
    type->is_str = false;
    type->anon = false;
+   // Assign type name as well
+   struct str str;
+   str_init( &str );
+   t_copy_name( name, false, &str );
+   type->type_name = str.value;
    return type;
 }
 
@@ -2710,6 +2715,15 @@ void test_var( struct task* task, struct var* var, bool undef_err ) {
       if ( undef_erred ) {
          return;
       }
+   }
+   struct expr* expr = var->value->expr;
+   // Check if the variable type is the same as the expresion type
+   if ( var->type != expr->type ) {
+      // TODO: implicit type casting
+      t_diag( task, DIAG_ERR | DIAG_FILE | DIAG_LINE | DIAG_COLUMN,
+         &var->object.pos, "type `%s` is not assignable to variable type `%s`",
+         expr->type->type_name, var->type->type_name );
+      t_bail( task );
    }
    var->object.resolved = true;
 }

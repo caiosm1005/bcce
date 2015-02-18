@@ -253,6 +253,7 @@ struct type {
    struct name* body;
    struct type_member* member;
    struct type_member* member_tail;
+   char* type_name;
    int size;
    bool primitive;
    bool is_str;
@@ -378,6 +379,7 @@ struct call {
 struct expr {
    struct node node;
    struct node* root;
+   struct type* type;
    struct pos pos;
    int value;
    bool folded;
