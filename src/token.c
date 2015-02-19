@@ -266,7 +266,7 @@ void read_source( struct task* task, struct token* token ) {
    if ( isalpha( ch ) || ch == '_' ) {
       char* id = save;
       while ( isalnum( ch ) || ch == '_' ) {
-         *save = tolower( ch );
+         *save = ch;
          ++save;
          ch = read_ch( task );
       }
