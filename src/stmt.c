@@ -960,6 +960,23 @@ void test_switch( struct task* task, struct stmt_test* test,
    stmt->case_head = body.case_head;
    stmt->case_default = body.case_default;
    stmt->jump_break = body.jump_break;
+   // TODO: Allow string switch
+   if ( stmt->cond->type == task->type_str ) {
+      t_diag( task, DIAG_POS_ERR, &stmt->cond->pos,
+         "cannot use string variable in switch conditional" );
+      t_bail( task );
+   }
+   struct case_label* case_label = stmt->case_head;
+   while ( case_label ) {
+      // TODO: Implicit conversion between int and fixed
+      if ( stmt->cond->type != case_label->number->type ) {
+         t_diag( task, DIAG_POS_ERR, &case_label->number->pos,
+            "switch condition and case types must be the same, `%s` given",
+            case_label->number->type->type_name );
+         t_bail( task );
+      }
+      case_label = case_label->next;
+   }
 }
 
 void test_while( struct task* task, struct stmt_test* test,
