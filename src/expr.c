@@ -1189,13 +1189,10 @@ void test_unary( struct task* task, struct expr_test* test,
       }
    }
    // Check value type
-   bool type_valid;
-   if ( unary->op == UOP_LOG_NOT ) {
+   bool type_valid = true;
+   if ( unary->op != UOP_LOG_NOT ) {
       type_valid = t_types_compatible( task, task->type_bool, target.type ) ||
          t_types_compatible( task, task->type_int, target.type );
-   }
-   else {
-      type_valid = t_types_compatible( task, task->type_int, target.type );
    }
    if ( ! type_valid ) {
       t_diag( task, DIAG_POS_ERR, &unary->pos,
