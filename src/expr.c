@@ -3,22 +3,6 @@
 
 #include "task.h"
 
-struct operand {
-   struct func* func;
-   struct dim* dim;
-   struct region* region;
-   struct type* type;
-   struct name* name_offset;
-   int value;
-   bool is_result;
-   bool is_usable;
-   bool is_space;
-   bool folded;
-   bool state_access;
-   bool state_modify;
-   bool in_paren;
-};
-
 static void read_op( struct task*, struct expr_reading* );
 static void read_operand( struct task*, struct expr_reading* );
 static struct binary* alloc_binary( int, struct pos* );
@@ -31,30 +15,30 @@ static void read_call_args( struct task* task, struct expr_reading*,
    struct list* );
 static void read_string( struct task*, struct expr_reading* );
 static void test_expr( struct task*, struct expr_test*, struct expr*,
-   struct operand* );
-static void init_operand( struct operand* );
-static void use_object( struct task*, struct expr_test*, struct operand*,
+   struct expr_operand* );
+static void init_expr_operand( struct expr_operand* );
+static void use_object( struct task*, struct expr_test*, struct expr_operand*,
    struct object* );
-static void test_node( struct task*, struct expr_test*, struct operand*,
+static void test_node( struct task*, struct expr_test*, struct expr_operand*,
    struct node* );
-static void test_literal( struct task*, struct operand*, struct literal* );
+static void test_literal( struct task*, struct expr_operand*, struct literal* );
 static void test_string_usage( struct task*, struct expr_test*,
-   struct operand*, struct indexed_string_usage* );
-static void test_boolean( struct task*, struct operand*, struct boolean* );
-static void test_name_usage( struct task*, struct expr_test*, struct operand*,
-   struct name_usage* );
+   struct expr_operand*, struct indexed_string_usage* );
+static void test_boolean( struct task*, struct expr_operand*, struct boolean* );
+static void test_name_usage( struct task*, struct expr_test*,
+   struct expr_operand*, struct name_usage* );
 static struct object* find_usage_object( struct task*, struct name_usage* );
-static void test_unary( struct task*, struct expr_test*, struct operand*,
+static void test_unary( struct task*, struct expr_test*, struct expr_operand*,
    struct unary* );
-static void test_subscript( struct task*, struct expr_test*, struct operand*,
-   struct subscript* );
-static void test_call( struct task*, struct expr_test*, struct operand*,
+static void test_subscript( struct task*, struct expr_test*,
+   struct expr_operand*, struct subscript* );
+static void test_call( struct task*, struct expr_test*, struct expr_operand*,
    struct call* );
-static void test_binary( struct task*, struct expr_test*, struct operand*,
+static void test_binary( struct task*, struct expr_test*, struct expr_operand*,
    struct binary* );
-static void test_assign( struct task*, struct expr_test*, struct operand*,
+static void test_assign( struct task*, struct expr_test*, struct expr_operand*,
    struct assign* );
-static void test_access( struct task*, struct expr_test*, struct operand*,
+static void test_access( struct task*, struct expr_test*, struct expr_operand*,
    struct access* );
 
 void t_init_expr_reading( struct expr_reading* reading, bool in_constant,
@@ -875,7 +859,7 @@ void t_init_expr_test( struct expr_test* test ) {
    test->suggest_paren_assign = false;
 }
 
-void init_operand( struct operand* operand ) {
+void init_expr_operand( struct expr_operand* operand ) {
    operand->func = NULL;
    operand->dim = NULL;
    operand->type = NULL;
@@ -893,14 +877,14 @@ void init_operand( struct operand* operand ) {
 
 void t_test_expr( struct task* task, struct expr_test* test,
    struct expr* expr ) {
-   struct operand operand;
-   init_operand( &operand );
+   struct expr_operand operand;
+   init_expr_operand( &operand );
    operand.name_offset = task->region->body;
    test_expr( task, test, expr, &operand );
 }
 
 void test_expr( struct task* task, struct expr_test* test, struct expr* expr,
-   struct operand* operand ) {
+   struct expr_operand* operand ) {
    if ( setjmp( test->bail ) == 0 ) {
       if ( test->need_value ) {
          operand->state_access = true;
@@ -925,7 +909,7 @@ void test_expr( struct task* task, struct expr_test* test, struct expr* expr,
 }
 
 void test_node( struct task* task, struct expr_test* test,
-   struct operand* operand, struct node* node ) {
+   struct expr_operand* operand, struct node* node ) {
    switch ( node->type ) {
    case NODE_LITERAL:
       test_literal( task, operand, ( struct literal* ) node );
@@ -977,7 +961,7 @@ void test_node( struct task* task, struct expr_test* test,
    }
 }
 
-void test_literal( struct task* task, struct operand* operand,
+void test_literal( struct task* task, struct expr_operand* operand,
    struct literal* literal ) {
    operand->value = literal->value;
    operand->folded = true;
@@ -987,7 +971,7 @@ void test_literal( struct task* task, struct operand* operand,
 }
 
 void test_string_usage( struct task* task, struct expr_test* test,
-   struct operand* operand, struct indexed_string_usage* usage ) {
+   struct expr_operand* operand, struct indexed_string_usage* usage ) {
    operand->value = usage->string->index;
    operand->folded = true;
    operand->is_result = true;
@@ -996,7 +980,7 @@ void test_string_usage( struct task* task, struct expr_test* test,
    test->has_string = true;
 }
 
-void test_boolean( struct task* task, struct operand* operand,
+void test_boolean( struct task* task, struct expr_operand* operand,
    struct boolean* boolean ) {
    operand->value = boolean->value;
    operand->folded = true;
@@ -1006,7 +990,7 @@ void test_boolean( struct task* task, struct operand* operand,
 }
 
 void test_name_usage( struct task* task, struct expr_test* test,
-   struct operand* operand, struct name_usage* usage ) {
+   struct expr_operand* operand, struct name_usage* usage ) {
    struct object* object = find_usage_object( task, usage );
    if ( object && object->resolved ) {
       use_object( task, test, operand, object );
@@ -1099,7 +1083,7 @@ struct object* find_usage_object( struct task* task,
 }
 
 void use_object( struct task* task, struct expr_test* test,
-   struct operand* operand, struct object* object ) {
+   struct expr_operand* operand, struct object* object ) {
    if ( object->node.type == NODE_REGION ) {
       operand->region = ( struct region* ) object;
    }
@@ -1174,9 +1158,9 @@ void use_object( struct task* task, struct expr_test* test,
 }
 
 void test_unary( struct task* task, struct expr_test* test,
-   struct operand* operand, struct unary* unary ) {
-   struct operand target;
-   init_operand( &target );
+   struct expr_operand* operand, struct unary* unary ) {
+   struct expr_operand target;
+   init_expr_operand( &target );
    target.name_offset = operand->name_offset;
    if ( unary->op == UOP_PRE_INC || unary->op == UOP_PRE_DEC ||
       unary->op == UOP_POST_INC || unary->op == UOP_POST_DEC ) {
@@ -1245,14 +1229,16 @@ void test_unary( struct task* task, struct expr_test* test,
       operand->type = task->type_bool;
    }
    else {
+      // TODO: Pick type_fixed if necessary
+      // Implicit conversion??
       operand->type = task->type_int;
    }
 }
 
 void test_subscript( struct task* task, struct expr_test* test,
-   struct operand* operand, struct subscript* subscript ) {
-   struct operand lside;
-   init_operand( &lside );
+   struct expr_operand* operand, struct subscript* subscript ) {
+   struct expr_operand lside;
+   init_expr_operand( &lside );
    lside.name_offset = operand->name_offset;
    if ( operand->state_modify ) {
       lside.state_modify = true;
@@ -1300,9 +1286,9 @@ void test_subscript( struct task* task, struct expr_test* test,
 }
 
 void test_call( struct task* task, struct expr_test* test,
-   struct operand* operand, struct call* call ) {
-   struct operand callee;
-   init_operand( &callee );
+   struct expr_operand* operand, struct call* call ) {
+   struct expr_operand callee;
+   init_expr_operand( &callee );
    callee.name_offset = operand->name_offset;
    test_node( task, test, &callee, call->operand );
    if ( ! callee.func ) {
@@ -1520,8 +1506,8 @@ void t_test_format_item( struct task* task, struct format_item* item,
          expr.accept_array = true;
          expr.need_value = false;
       }
-      struct operand arg;
-      init_operand( &arg );
+      struct expr_operand arg;
+      init_expr_operand( &arg );
       arg.name_offset = name_offset;
       test_expr( task, &expr, item->value, &arg );
       if ( expr.undef_erred ) {
@@ -1562,9 +1548,9 @@ void t_test_format_item( struct task* task, struct format_item* item,
 }
 
 void test_binary( struct task* task, struct expr_test* test,
-   struct operand* operand, struct binary* binary ) {
-   struct operand lside;
-   init_operand( &lside );
+   struct expr_operand* operand, struct binary* binary ) {
+   struct expr_operand lside;
+   init_expr_operand( &lside );
    lside.name_offset = operand->name_offset;
    lside.state_access = true;
    test_node( task, test, &lside, binary->lside );
@@ -1573,8 +1559,8 @@ void test_binary( struct task* task, struct expr_test* test,
          "operand on left side not a value" );
       t_bail( task );
    }
-   struct operand rside;
-   init_operand( &rside );
+   struct expr_operand rside;
+   init_expr_operand( &rside );
    rside.name_offset = operand->name_offset;
    rside.state_access = true;
    test_node( task, test, &rside, binary->rside );
@@ -1655,7 +1641,7 @@ void test_binary( struct task* task, struct expr_test* test,
 }
 
 void test_assign( struct task* task, struct expr_test* test,
-   struct operand* operand, struct assign* assign ) {
+   struct expr_operand* operand, struct assign* assign ) {
    // To avoid the error where the user wanted equality operator but instead
    // typed in the assignment operator, suggest that assignment be wrapped in
    // parentheses.
@@ -1663,8 +1649,8 @@ void test_assign( struct task* task, struct expr_test* test,
       t_diag( task, DIAG_WARN | DIAG_FILE | DIAG_LINE | DIAG_COLUMN,
          &assign->pos, "assignment operation not in parentheses" );
    }
-   struct operand lside;
-   init_operand( &lside );
+   struct expr_operand lside;
+   init_expr_operand( &lside );
    lside.name_offset = operand->name_offset;
    lside.state_modify = true;
    lside.state_access = operand->state_access;
@@ -1674,8 +1660,8 @@ void test_assign( struct task* task, struct expr_test* test,
          "cannot assign to operand on left side" );
       t_bail( task );
    }
-   struct operand rside;
-   init_operand( &rside );
+   struct expr_operand rside;
+   init_expr_operand( &rside );
    rside.name_offset = operand->name_offset;
    rside.state_access = true;
    test_node( task, test, &rside, assign->rside );
@@ -1697,10 +1683,10 @@ void test_assign( struct task* task, struct expr_test* test,
 }
 
 void test_access( struct task* task, struct expr_test* test,
-   struct operand* operand, struct access* access ) {
+   struct expr_operand* operand, struct access* access ) {
    struct object* object = NULL;
-   struct operand lside;
-   init_operand( &lside );
+   struct expr_operand lside;
+   init_expr_operand( &lside );
    lside.name_offset = operand->name_offset;
    if ( operand->state_modify ) {
       lside.state_modify = true;

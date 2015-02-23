@@ -901,6 +901,22 @@ struct expr_test {
    bool suggest_paren_assign;
 };
 
+struct expr_operand {
+   struct func* func;
+   struct dim* dim;
+   struct region* region;
+   struct type* type;
+   struct name* name_offset;
+   int value;
+   bool is_result;
+   bool is_usable;
+   bool is_space;
+   bool folded;
+   bool state_access;
+   bool state_modify;
+   bool in_paren;
+};
+
 #define BUFFER_SIZE 65536
 
 struct buffer {
