@@ -1170,7 +1170,7 @@ void test_unary( struct task* task, struct expr_test* test,
       }
       test_node( task, test, &target, unary->operand );
       // Only an l-value can be incremented.
-      if ( ! target.is_space ) {
+      if ( ! target.is_space || target.type->node_type != NODE_LITERAL ) {
          const char* action = "incremented";
          if ( unary->op == UOP_PRE_DEC || unary->op == UOP_POST_DEC ) {
             action = "decremented";
@@ -1189,18 +1189,17 @@ void test_unary( struct task* task, struct expr_test* test,
             "operand of unary operation not a value" );
          t_bail( task );
       }
-   }
-   // Check value type
-   bool type_valid = true;
-   if ( unary->op != UOP_LOG_NOT ) {
-      type_valid = t_types_compatible( task, task->type_bool, target.type ) ||
-         t_types_compatible( task, task->type_int, target.type );
-   }
-   if ( ! type_valid ) {
-      t_diag( task, DIAG_POS_ERR, &unary->pos,
-         "invalid operand type `%s` in unary operation",
-         target.type->type_name );
-      t_bail( task );
+      // Check operand type
+      if ( unary->op != UOP_LOG_NOT ) {
+         bool op_is_literal = unary->op == UOP_MINUS || unary->op == UOP_PLUS;
+         bool op_is_int = unary->op == UOP_BIT_NOT;
+         if ( target.type->node_type != NODE_LITERAL && op_is_literal ||
+            target.type != task->type_int && op_is_int ) {
+            t_diag( task, DIAG_POS_ERR, &unary->pos,
+               "operand cannot be of type `%s`", target.type->type_name );
+            t_bail( task );
+         }
+      }
    }
    // Compile-time evaluation.
    if ( target.folded ) {
@@ -1212,6 +1211,7 @@ void test_unary( struct task* task, struct expr_test* test,
          operand->value = target.value;
          break;
       case UOP_LOG_NOT:
+         // TODO: for strings, return false for empty strings or true otherwise
          operand->value = ( ! target.value );
          break;
       case UOP_BIT_NOT:
