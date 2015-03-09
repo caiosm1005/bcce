@@ -80,6 +80,7 @@ static struct type* get_type( struct task*, int );
 static struct library* add_library( struct task* );
 static struct region* alloc_region( struct task*, struct name*, bool );
 static void read_region_body( struct task* );
+static void init_param( struct param*, struct type* );
 static void init_params( struct params* );
 static void read_params( struct task*, struct params* );
 static void read_qual( struct task*, struct dec* );
@@ -1580,6 +1581,16 @@ void read_func( struct task* task, struct dec* dec ) {
    }
 }
 
+void init_param( struct param* param, struct type* type ) {
+   init_object( &param->object, NODE_PARAM );
+   param->type = type;
+   param->next = NULL;
+   param->name = NULL;
+   param->default_value = NULL;
+   param->index = 0;
+   param->obj_pos = 0;
+}
+
 void init_params( struct params* params ) {
    params->node = NULL;
    params->min = 0;
@@ -1628,13 +1639,7 @@ void read_params( struct task* task, struct params* params ) {
       }
       struct pos pos = task->tk_pos;
       struct param* param = mem_slot_alloc( sizeof( *param ) );
-      init_object( &param->object, NODE_PARAM );
-      param->type = type;
-      param->next = NULL;
-      param->name = NULL;
-      param->default_value = NULL;
-      param->index = 0;
-      param->obj_pos = 0;
+      init_param( param, type );
       ++params->max;
       t_read_tk( task );
       // Name not required for a parameter.
