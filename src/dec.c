@@ -260,6 +260,7 @@ void init_type( struct task* task ) {
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
+   type->is_str = false;
    task->type_int = type;
    type = new_type( task,
       t_make_name( task, "str", task->region_upmost->body ) );
@@ -273,6 +274,7 @@ void init_type( struct task* task ) {
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
+   type->is_str = false;
    task->type_bool = type;
 }
 
