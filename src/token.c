@@ -292,8 +292,7 @@ void read_source( struct task* task, struct token* token ) {
          { "enum", TK_ENUM },
          { "event", TK_EVENT },
          { "false", TK_FALSE },
-         // Maybe we'll add this as a type later.
-         { "fixed", TK_RESERVED },
+         { "fixed", TK_FIXED },
          { "for", TK_FOR },
          { "function", TK_FUNCTION },
          { "global", TK_GLOBAL },
@@ -1196,6 +1195,7 @@ const char* t_get_token_name( enum tk tk ) {
       { TK_FOR, "`for`" },
       { TK_IF, "`if`" },
       { TK_INT, "`int`" },
+      { TK_FIXED, "`fixed`" },
       { TK_RETURN, "`return`" },
       { TK_STATIC, "`static`" },
       { TK_STR, "`str`" },

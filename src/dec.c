@@ -62,6 +62,7 @@ struct value_index_alloc {
 
 enum {
    TYPE_INT,
+   TYPE_FIXED,
    TYPE_STR,
    TYPE_BOOL,
    TYPE_VOID
@@ -257,13 +258,23 @@ int t_full_name_length( struct name* name ) {
 void init_type( struct task* task ) {
    struct type* type = new_type( task,
       t_make_name( task, "int", task->region_upmost->body ) );
+   type->node_type = NODE_LITERAL;
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
    type->is_str = false;
    task->type_int = type;
    type = new_type( task,
+      t_make_name( task, "fixed", task->region_upmost->body ) );
+   type->node_type = NODE_LITERAL;
+   type->object.resolved = true;
+   type->size = 1;
+   type->primitive = true;
+   type->is_str = false;
+   task->type_fixed = type;
+   type = new_type( task,
       t_make_name( task, "str", task->region_upmost->body ) );
+   type->node_type = NODE_INDEXED_STRING_USAGE;
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
@@ -271,6 +282,7 @@ void init_type( struct task* task ) {
    task->type_str = type;
    type = new_type( task,
       t_make_name( task, "bool", task->region_upmost->body ) );
+   type->node_type = NODE_BOOLEAN;
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
@@ -332,6 +344,8 @@ struct type* get_type( struct task* task, int id ) {
    switch ( id ) {
    case TYPE_INT:
       return task->type_int;
+   case TYPE_FIXED:
+      return task->type_fixed;
    case TYPE_STR:
       return task->type_str;
    case TYPE_BOOL:
@@ -825,6 +839,7 @@ struct path* alloc_path( struct pos pos ) {
 bool t_is_dec( struct task* task ) {
    switch ( task->tk ) {
    case TK_INT:
+   case TK_FIXED:
    case TK_STR:
    case TK_BOOL:
    case TK_VOID:
@@ -991,6 +1006,10 @@ void read_type( struct task* task, struct dec* dec ) {
    dec->type_pos = task->tk_pos;
    if ( task->tk == TK_INT ) {
       dec->type = task->type_int;
+      t_read_tk( task );
+   }
+   else if ( task->tk == TK_FIXED ) {
+      dec->type = task->type_fixed;
       t_read_tk( task );
    }
    else if ( task->tk == TK_STR ) {
@@ -1625,7 +1644,10 @@ void read_params( struct task* task, struct params* params ) {
    struct param* tail = NULL;
    while ( true ) {
       struct type* type = task->type_int;
-      if ( task->tk == TK_STR ) {
+      if ( task->tk == TK_FIXED ) {
+         type = task->type_fixed;
+      }
+      else if ( task->tk == TK_STR ) {
          type = task->type_str;
       }
       else if ( task->tk == TK_BOOL ) {

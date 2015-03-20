@@ -129,7 +129,8 @@ enum tk {
    TK_LIB,
    TK_LIB_END,
    TK_LIT_BINARY,
-   TK_TOTAL
+   TK_TOTAL,
+   TK_FIXED
 };
 
 struct pos {
@@ -254,6 +255,7 @@ struct type {
    struct type_member* member;
    struct type_member* member_tail;
    char* type_name;
+   int node_type;
    int size;
    bool primitive;
    bool is_str;
@@ -1320,6 +1322,7 @@ struct task {
    int tk_length;
    struct str_table str_table;
    struct type* type_int;
+   struct type* type_fixed;
    struct type* type_str;
    struct type* type_bool;
    struct region* region;
