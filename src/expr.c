@@ -1110,6 +1110,10 @@ void use_object( struct task* task, struct expr_test* test,
          operand->is_result = true;
          operand->is_usable = true;
          operand->is_space = true;
+         if ( var->value->expr->folded ) {
+            operand->value = var->value->expr->value;
+            operand->folded = true;
+         }
       }
       var->used = true;
    }
