@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 struct operand {
+   struct expr* expr;
    struct type* type;
    struct dim* dim;
    enum {
@@ -385,12 +386,14 @@ void visit_packed_expr( struct task* task, struct packed_expr* stmt ) {
 void push_expr( struct task* task, struct expr* expr, bool temp ) {
    struct operand operand;
    init_operand( &operand );
+   operand.expr = expr;
    operand.push = true;
    operand.push_temp = temp;
    visit_operand( task, &operand, expr->root );
 }
 
 void init_operand( struct operand* operand ) {
+   operand->expr = NULL;
    operand->type = NULL;
    operand->dim = NULL;
    operand->action = ACTION_PUSH_VALUE;
@@ -1048,35 +1051,42 @@ void visit_binary( struct task* task, struct operand* operand,
       operand->pushed = true;
    }
    else {
-      struct operand lside;
-      init_operand( &lside );
-      lside.push = true;
-      visit_operand( task, &lside, binary->lside );
-      struct operand rside;
-      init_operand( &rside );
-      rside.push = true;
-      visit_operand( task, &rside, binary->rside );
-      int code = PCD_NONE;
-      switch ( binary->op ) {
-      case BOP_BIT_OR: code = PCD_ORBITWISE; break;
-      case BOP_BIT_XOR: code = PCD_EORBITWISE; break;
-      case BOP_BIT_AND: code = PCD_ANDBITWISE; break;
-      case BOP_EQ: code = PCD_EQ; break;
-      case BOP_NEQ: code = PCD_NE; break;
-      case BOP_LT: code = PCD_LT; break;
-      case BOP_LTE: code = PCD_LE; break;
-      case BOP_GT: code = PCD_GT; break;
-      case BOP_GTE: code = PCD_GE; break;
-      case BOP_SHIFT_L: code = PCD_LSHIFT; break;
-      case BOP_SHIFT_R: code = PCD_RSHIFT; break;
-      case BOP_ADD: code = PCD_ADD; break;
-      case BOP_SUB: code = PCD_SUBTRACT; break;
-      case BOP_MUL: code = PCD_MULIPLY; break;
-      case BOP_DIV: code = PCD_DIVIDE; break;
-      case BOP_MOD: code = PCD_MODULUS; break;
-      default: break;
+      if ( operand->expr && operand->expr->folded ) {
+         // The math has been already solved by the compiler, so we can use the
+         // expression value instead of calculating in the script
+         t_add_opc( task, PCD_PUSHNUMBER );
+         t_add_arg( task, operand->expr->value );
       }
-      t_add_opc( task, code );
+      else {
+         struct operand lside;
+         init_operand( &lside );
+         lside.push = true;
+         visit_operand( task, &lside, binary->lside );
+         struct operand rside;
+         init_operand( &rside );
+         rside.push = true;
+         visit_operand( task, &rside, binary->rside );
+         int code = PCD_NONE;
+         switch ( binary->op ) {
+         case BOP_BIT_OR: code = PCD_ORBITWISE; break;
+         case BOP_BIT_XOR: code = PCD_EORBITWISE; break;
+         case BOP_BIT_AND: code = PCD_ANDBITWISE; break;
+         case BOP_EQ: code = PCD_EQ; break;
+         case BOP_NEQ: code = PCD_NE; break;
+         case BOP_LT: code = PCD_LT; break;
+         case BOP_LTE: code = PCD_LE; break;
+         case BOP_GT: code = PCD_GT; break;
+         case BOP_GTE: code = PCD_GE; break;
+         case BOP_SHIFT_L: code = PCD_LSHIFT; break;
+         case BOP_SHIFT_R: code = PCD_RSHIFT; break;
+         case BOP_ADD: code = PCD_ADD; break;
+         case BOP_SUB: code = PCD_SUBTRACT; break;
+         case BOP_MUL: code = PCD_MULIPLY; break;
+         case BOP_DIV: code = PCD_DIVIDE; break;
+         case BOP_MOD: code = PCD_MODULUS; break;
+         }
+         t_add_opc( task, code );
+      }
       operand->pushed = true;
    }
 }
