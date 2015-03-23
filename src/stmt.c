@@ -1131,6 +1131,7 @@ void test_script_jump( struct task* task, struct stmt_test* test,
 
 void test_return( struct task* task, struct stmt_test* test,
    struct return_stmt* stmt ) {
+   // TODO: Check for non-void functions without a return statement (bcc/#5)
    struct stmt_test* target = test;
    while ( target && ! target->func ) {
       target = target->parent;
@@ -1151,8 +1152,8 @@ void test_return( struct task* task, struct stmt_test* test,
             "returning value in void function `%s`", str.value );
          t_bail( task );
       }
-      else if ( ! t_types_compatible( task, stmt->return_value->expr->type,
-         target->func->return_type ) ) {
+      else if ( stmt->return_value->expr->type->kind !=
+         target->func->return_type->kind ) {
          t_diag( task, DIAG_POS_ERR, &pos,
             "cannot convert return value to type `%s` in function `%s`",
             target->func->return_type->type_name, str.value );

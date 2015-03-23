@@ -1174,7 +1174,7 @@ void test_unary( struct task* task, struct expr_test* test,
       }
       test_node( task, test, &target, unary->operand );
       // Only an l-value can be incremented.
-      if ( ! target.is_space || target.type->node_type != NODE_LITERAL ) {
+      if ( ! target.is_space || ! target.type->kind != KIND_LITERAL ) {
          const char* action = "incremented";
          if ( unary->op == UOP_PRE_DEC || unary->op == UOP_POST_DEC ) {
             action = "decremented";
@@ -1197,7 +1197,7 @@ void test_unary( struct task* task, struct expr_test* test,
       if ( unary->op != UOP_LOG_NOT ) {
          bool op_is_literal = unary->op == UOP_MINUS || unary->op == UOP_PLUS;
          bool op_is_int = unary->op == UOP_BIT_NOT;
-         if ( target.type->node_type != NODE_LITERAL && op_is_literal ||
+         if ( target.type->kind != KIND_LITERAL && op_is_literal ||
             target.type != task->type_int && op_is_int ) {
             t_diag( task, DIAG_POS_ERR, &unary->pos,
                "operand cannot be of type `%s`", target.type->type_name );
@@ -1396,7 +1396,7 @@ void test_call( struct task* task, struct expr_test* test,
          longjmp( test->bail, 1 );
       }
       struct expr* expr = list_data( &i );
-      if ( ! t_types_compatible( task, param->type, expr->type ) ) {
+      if ( param->type->kind != expr->type->kind ) {
          struct str str;
          str_init( &str );
          t_copy_name( callee.func->name, false, &str );
@@ -1573,8 +1573,7 @@ void test_binary( struct task* task, struct expr_test* test,
          "operand on right side not a value" );
       t_bail( task );
    }
-   // Check for operand types
-   if ( ! t_types_compatible( task, lside.type, rside.type ) ) {
+   if ( lside.type->kind != rside.type->kind ) {
       t_diag( task, DIAG_POS_ERR, &binary->pos,
          "operator cannot be applied to types `%s` and `%s`",
          lside.type->type_name, rside.type->type_name );
@@ -1675,7 +1674,7 @@ void test_assign( struct task* task, struct expr_test* test,
       t_bail( task );
    }
    // Check if both types are compatible
-   if ( ! t_types_compatible( task, lside.type, rside.type ) ) {
+   if ( lside.type->kind != rside.type->kind ) {
       t_diag( task, DIAG_POS_ERR, &assign->pos,
          "cannot assign value type `%s` to left side type `%s`",
          rside.type->type_name, lside.type->type_name );
@@ -1776,14 +1775,4 @@ void test_access( struct task* task, struct expr_test* test,
          longjmp( test->bail, 1 );
       }
    }
-}
-
-bool t_types_compatible( struct task* task, struct type* type1,
-   struct type* type2 ) {
-   // TODO: Compare int to fixed and return true
-   // if ( type1 == task->type_int && type2 == task->type_fixed
-   //    || type1 == task->type_fixed && type2 == task->type_int ) {
-   //    return true;
-   // }
-   return type1 == type2;
 }

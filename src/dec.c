@@ -258,35 +258,31 @@ int t_full_name_length( struct name* name ) {
 void init_type( struct task* task ) {
    struct type* type = new_type( task,
       t_make_name( task, "int", task->region_upmost->body ) );
-   type->node_type = NODE_LITERAL;
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
-   type->is_str = false;
+   type->kind = KIND_LITERAL;
    task->type_int = type;
    type = new_type( task,
       t_make_name( task, "fixed", task->region_upmost->body ) );
-   type->node_type = NODE_LITERAL;
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
-   type->is_str = false;
+   type->kind = KIND_LITERAL;
    task->type_fixed = type;
    type = new_type( task,
       t_make_name( task, "str", task->region_upmost->body ) );
-   type->node_type = NODE_INDEXED_STRING_USAGE;
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
-   type->is_str = true;
+   type->kind = KIND_STRING;
    task->type_str = type;
    type = new_type( task,
       t_make_name( task, "bool", task->region_upmost->body ) );
-   type->node_type = NODE_BOOLEAN;
    type->object.resolved = true;
    type->size = 1;
    type->primitive = true;
-   type->is_str = false;
+   type->kind = KIND_BOOLEAN;
    task->type_bool = type;
 }
 
@@ -299,13 +295,13 @@ struct type* new_type( struct task* task, struct name* name ) {
    type->member_tail = NULL;
    type->size = 0;
    type->primitive = false;
-   type->is_str = false;
    type->anon = false;
    // Assign type name as well
    struct str str;
    str_init( &str );
    t_copy_name( name, false, &str );
    type->type_name = str.value;
+   type->kind = KIND_STRUCT;
    return type;
 }
 
@@ -2745,16 +2741,6 @@ void test_var( struct task* task, struct var* var, bool undef_err ) {
          return;
       }
    }
-   // Check if the variable type is the same as the expresion type
-   if ( var->value ) {
-      struct expr* expr = var->value->expr;
-      if ( ! t_types_compatible( task, var->type, expr->type ) ) {
-         t_diag( task, DIAG_POS_ERR, &var->object.pos,
-            "type `%s` is not assignable to variable type `%s`",
-            expr->type->type_name, var->type->type_name );
-         t_bail( task );
-      }
-   }
    var->object.resolved = true;
 }
 
@@ -2832,6 +2818,13 @@ void test_init( struct task* task, struct var* var, bool undef_err,
          if ( var->storage == STORAGE_MAP && ! value->expr->folded ) {
             t_diag( task, DIAG_ERR | DIAG_FILE | DIAG_LINE | DIAG_COLUMN,
                &expr_test.pos, "initial value not constant" );
+            t_bail( task );
+         }
+         // Check if the variable type is the same as the expresion type
+         if ( var->type->kind != value->expr->type->kind ) {
+            t_diag( task, DIAG_POS_ERR, &var->object.pos,
+               "type `%s` is not assignable to variable type `%s`",
+               value->expr->type->type_name, var->type->type_name );
             t_bail( task );
          }
          var->value = value;
@@ -2999,7 +2992,7 @@ void test_multi_value_struct( struct task* task,
          // At this time, I know of no good way to initialize a string member.
          // The user will have to initialize the member manually, by using an
          // assignment operation.
-         if ( member->type->is_str ) {
+         if ( member->type->kind == KIND_STRING ) {
             t_diag( task, DIAG_POS_ERR, &value->expr->pos,
                "initializing struct member of string type" );
             t_bail( task );
@@ -3040,8 +3033,7 @@ void test_func( struct task* task, struct func* func, bool undef_err ) {
                break;
             }
             // Check if types are compatible
-            if ( ! t_types_compatible( task,
-               param->type, param->default_value->type ) ) {
+            if ( param->type->kind != param->default_value->type->kind ) {
                struct str str;
                str_init( &str );
                t_copy_name( func->name, false, &str );

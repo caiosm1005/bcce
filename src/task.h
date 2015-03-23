@@ -255,11 +255,15 @@ struct type {
    struct type_member* member;
    struct type_member* member_tail;
    char* type_name;
-   int node_type;
    int size;
    bool primitive;
-   bool is_str;
    bool anon;
+   enum {
+      KIND_LITERAL,
+      KIND_STRING,
+      KIND_BOOLEAN,
+      KIND_STRUCT
+   } kind;
 };
 
 struct type_member {
@@ -1439,6 +1443,5 @@ struct source* t_load_included_source( struct task* );
 void t_make_main_lib( struct task* );
 void t_read_lib( struct task* );
 bool t_same_pos( struct pos*, struct pos* );
-bool t_types_compatible( struct type*, struct type* );
 
 #endif
